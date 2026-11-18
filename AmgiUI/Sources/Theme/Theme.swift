@@ -21,6 +21,7 @@ public struct ThemeID: Hashable, Codable, Sendable, RawRepresentable {
     public static let muted = ThemeID(rawValue: "muted")
     public static let sepia = ThemeID(rawValue: "sepia")
     public static let minimal = ThemeID(rawValue: "minimal")
+    public static let horsefc = ThemeID(rawValue: "horsefc")
 }
 
 public enum Appearance: String, CaseIterable, Sendable {
