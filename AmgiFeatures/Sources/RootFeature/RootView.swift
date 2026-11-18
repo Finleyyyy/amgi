@@ -37,6 +37,7 @@ public struct RootView: View {
 
     @State private var pendingReviewDeckId: DeckID?
     @State private var showImport = false
+    @State private var incomingPackage: URL?
     @State private var refreshID = UUID()
     @State private var wordSheet: WordSpotlightSheet?
     private let wordSpotlight = WordSpotlightController.shared
@@ -80,6 +81,10 @@ public struct RootView: View {
                 }
             }
             .onOpenURL { url in
+                if url.isFileURL, ["apkg", "colpkg"].contains(url.pathExtension.lowercased()) {
+                    incomingPackage = url
+                    return
+                }
                 if let link = WordSpotlightLink(url: url) {
                     wordSheet = .word(link)
                     return
@@ -157,7 +162,7 @@ public struct RootView: View {
         }
         // still drives the tabs not yet on CollectionStore
         .syncFlow { refreshID = UUID() }
-        .deckImport(isPresented: $showImport) {
+        .deckImport(isPresented: $showImport, externalFile: $incomingPackage) {
             store.invalidateAll()
             refreshID = UUID()
         }
