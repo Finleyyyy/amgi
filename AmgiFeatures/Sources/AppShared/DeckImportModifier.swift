@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 
 private struct DeckImportModifier: ViewModifier {
     @Binding var isPresented: Bool
+    @Binding var externalFile: URL?
     let onRefresh: () -> Void
 
     @State private var status: ImportStatusBanner.Status?
@@ -20,6 +21,11 @@ private struct DeckImportModifier: ViewModifier {
         content
             .fileImporter(isPresented: $isPresented, allowedContentTypes: [.data]) { result in
                 handleImport(result)
+            }
+            .onChange(of: externalFile) { _, url in
+                guard let url else { return }
+                externalFile = nil
+                handleImport(.success(url))
             }
             .overlay(alignment: .top) { ImportStatusBanner(status: status) }
             .animation(AmgiMotion.momentum, value: status)
@@ -65,7 +71,11 @@ private extension DeckImportModifier {
 }
 
 extension View {
-    public func deckImport(isPresented: Binding<Bool>, onRefresh: @escaping () -> Void) -> some View {
-        modifier(DeckImportModifier(isPresented: isPresented, onRefresh: onRefresh))
+    public func deckImport(
+        isPresented: Binding<Bool>,
+        externalFile: Binding<URL?> = .constant(nil),
+        onRefresh: @escaping () -> Void
+    ) -> some View {
+        modifier(DeckImportModifier(isPresented: isPresented, externalFile: externalFile, onRefresh: onRefresh))
     }
 }
