@@ -9,6 +9,51 @@ public import SwiftUI
 import Theme
 import UniformTypeIdentifiers
 
+#if canImport(UIKit)
+import UIKit
+
+/// Presents UIKit's document picker directly. SwiftUI's `fileImporter` did
+/// nothing on tap in some sideloaded builds; this also asks iOS for a local
+/// copy (`asCopy`), so no security-scoped access or iCloud download is needed.
+@MainActor
+final class PackagePicker: NSObject, UIDocumentPickerDelegate {
+    static let shared = PackagePicker()
+    private var onPick: ((Result<URL, any Error>) -> Void)?
+
+    func present(onPick: @escaping (Result<URL, any Error>) -> Void) {
+        self.onPick = onPick
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.item], asCopy: true)
+        picker.delegate = self
+        picker.allowsMultipleSelection = false
+        guard let top = Self.topViewController() else {
+            onPick(.failure(CocoaError(.userCancelled)))
+            return
+        }
+        top.present(picker, animated: true)
+    }
+
+    private static func topViewController() -> UIViewController? {
+        let window = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
+        var top = window?.rootViewController
+        while let presented = top?.presentedViewController { top = presented }
+        return top
+    }
+
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let url = urls.first else { return }
+        onPick?(.success(url))
+        onPick = nil
+    }
+
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        onPick = nil
+    }
+}
+#endif
+
 private struct DeckImportModifier: ViewModifier {
     @Binding var isPresented: Bool
     @Binding var externalFile: URL?
@@ -19,9 +64,17 @@ private struct DeckImportModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            #if canImport(UIKit)
+            .onChange(of: isPresented) { _, show in
+                guard show else { return }
+                isPresented = false
+                PackagePicker.shared.present { result in handleImport(result) }
+            }
+            #else
             .fileImporter(isPresented: $isPresented, allowedContentTypes: [.data]) { result in
                 handleImport(result)
             }
+            #endif
             .onChange(of: externalFile) { _, url in
                 guard let url else { return }
                 externalFile = nil
