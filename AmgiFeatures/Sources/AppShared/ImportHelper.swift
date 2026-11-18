@@ -25,10 +25,14 @@ enum ImportError: Error, LocalizedError {
 
 public enum ImportHelper {
     public static func importPackage(from url: URL) async throws -> String {
-        guard url.startAccessingSecurityScopedResource() else {
+        // Files from the picker are security-scoped; files handed over via
+        // "Open in" already sit in our sandbox, where this returns false.
+        // That is not an error, so only fail if the file really is unreadable.
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard scoped || FileManager.default.isReadableFile(atPath: url.path) else {
             throw ImportError.accessDenied
         }
-        defer { url.stopAccessingSecurityScopedResource() }
 
         let tempDir = FileManager.default.temporaryDirectory
         let tempFile = tempDir.appendingPathComponent(url.lastPathComponent)
