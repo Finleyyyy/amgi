@@ -28,6 +28,14 @@
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>com.amgiapp.anki-package</string>
+				<string>public.zip-archive</string>
+				<string>public.archive</string>
+				<string>public.data</string>
+			</array>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>apkg</string>
+				<string>colpkg</string>
 			</array>
 		</dict>
 	</array>
